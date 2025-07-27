@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 
 enum ProcessingOperation {
   removeBackground,
-  removeText,
+  removeText, 
   cleanup,
   removeLogo,
   uncrop,
@@ -16,62 +16,49 @@ enum ProcessingOperation {
 }
 
 class ClipDropService {
-  static const String _baseUrl = 'https://clipdrop-api.co';
-  static const String _removeBackgroundUrl = '$_baseUrl/remove-background/v1';
-  static const String _removeTextUrl = '$_baseUrl/remove-text/v1';
-  static const String _cleanupUrl = '$_baseUrl/cleanup/v1';
-  static const String _uncropUrl = '$_baseUrl/uncrop/v1';
-  static const String _imageUpscalingUrl = '$_baseUrl/image-upscaling/v1';
-  static const String _reimagineUrl = '$_baseUrl/reimagine/v1';
-  static const String _productPhotographyUrl = '$_baseUrl/product-photography/v1';
-  static const String _textToImageUrl = '$_baseUrl/text-to-image/v1';
-  static const String _replaceBackgroundUrl = '$_baseUrl/replace-background/v1';
+  static const String _primaryApiKey = 'YOUR_PRIMARY_CLIPDROP_API_KEY';
+  static const String _backupApiKey = 'YOUR_BACKUP_CLIPDROP_API_KEY';
   
-  // API keys - primary and backup
-  static const String _primaryApiKey = '2f62a50ae0c0b965c1f54763e90bb44c101d8d1b84b5a670f4a6bd336954ec2c77f3c3b28ad0c1c9271fcfdfa2abc664';
-  static const String _backupApiKey = '7ce6a169f98dc2fb224fc5ad1663c53716b1ee3332fc7a3903dc8a5092feb096731cf4a19f9989cb2901351e1c086ff2';
-  
-  // Current API key being used
+  // API endpoints
+  static const String _removeBackgroundUrl = 'https://clipdrop-api.co/remove-background/v1';
+  static const String _removeTextUrl = 'https://clipdrop-api.co/remove-text/v1';
+  static const String _cleanupUrl = 'https://clipdrop-api.co/cleanup/v1';
+  static const String _uncropUrl = 'https://clipdrop-api.co/uncrop/v1';
+  static const String _imageUpscalingUrl = 'https://clipdrop-api.co/image-upscaling/v1';
+  static const String _reimagineUrl = 'https://clipdrop-api.co/reimagine/v1';
+  static const String _productPhotographyUrl = 'https://clipdrop-api.co/product-photography/v1';
+  static const String _textToImageUrl = 'https://clipdrop-api.co/text-to-image/v1';
+  static const String _replaceBackgroundUrl = 'https://clipdrop-api.co/replace-background/v1';
+
+  late Dio _dio;
   String _currentApiKey = _primaryApiKey;
   bool _usingBackupApi = false;
-  
-  final Dio _dio = Dio();
 
   ClipDropService() {
-    _updateApiKey();
-    _dio.options.connectTimeout = const Duration(seconds: 30);
-    _dio.options.receiveTimeout = const Duration(seconds: 60);
-  }
-
-  void _updateApiKey() {
+    _dio = Dio();
     _dio.options.headers['x-api-key'] = _currentApiKey;
   }
 
   void _switchToBackupApi() {
-    if (!_usingBackupApi) {
-      _currentApiKey = _backupApiKey;
-      _usingBackupApi = true;
-      _updateApiKey();
-      print('Đã chuyển sang API dự phòng do API chính hết credit');
-    }
+    _currentApiKey = _backupApiKey;
+    _usingBackupApi = true;
+    _dio.options.headers['x-api-key'] = _currentApiKey;
+    print('Đã chuyển sang API dự phòng');
   }
 
   void _resetToPrimaryApi() {
-    if (_usingBackupApi) {
-      _currentApiKey = _primaryApiKey;
-      _usingBackupApi = false;
-      _updateApiKey();
-      print('Đã reset về API chính');
-    }
+    _currentApiKey = _primaryApiKey;
+    _usingBackupApi = false;
+    _dio.options.headers['x-api-key'] = _currentApiKey;
+    print('Đã reset về API chính');
   }
 
-  // Failover execution wrapper
   Future<T> _executeWithFailover<T>(Future<T> Function() operation) async {
     try {
       return await operation();
     } on DioException catch (e) {
-      // Check if it's a credit/quota issue (HTTP 429, 402 or specific error messages)
-      bool isQuotaError = e.response?.statusCode == 429 || 
+      // Check if it's a quota/credit related error
+      final isQuotaError = e.response?.statusCode == 400 ||
                          e.response?.statusCode == 402 ||
                          (e.response?.data != null && 
                           e.response!.data.toString().toLowerCase().contains('quota')) ||
@@ -155,7 +142,7 @@ class ClipDropService {
         ),
       });
 
-      // Add specific parameters for each operation
+      // Add operation-specific parameters
       switch (operation) {
         case ProcessingOperation.cleanup:
           if (maskFile != null) {
@@ -187,19 +174,9 @@ class ClipDropService {
           }
           break;
         
-        case ProcessingOperation.reimagine:
-          // Reimagine doesn't need additional parameters
-          break;
-        
         case ProcessingOperation.productPhotography:
           if (scene != null) {
             formData.fields.add(MapEntry('scene', scene));
-          }
-          break;
-        
-        case ProcessingOperation.textToImage:
-          if (prompt != null) {
-            formData.fields.add(MapEntry('prompt', prompt));
           }
           break;
         
@@ -235,19 +212,6 @@ class ClipDropService {
       } else {
         throw Exception('API error: ${response.statusCode}');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw Exception('API key không hợp lệ - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      } else if (e.response?.statusCode == 403) {
-        throw Exception('Không có quyền truy cập API - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      } else if (e.response?.statusCode == 429) {
-        throw Exception('Đã vượt quá giới hạn API - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      } else {
-        throw Exception('Lỗi kết nối: ${e.message} - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      }
-    } catch (e) {
-      throw Exception('Lỗi không xác định: $e - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-    }
     });
   }
 
@@ -299,11 +263,6 @@ class ClipDropService {
     );
   }
 
-  Future<Uint8List> textToImage(String prompt) async {
-    // For text to image, we create a dummy file
-    throw UnimplementedError('Text to image requires different implementation');
-  }
-
   Future<Uint8List> replaceBackground(File imageFile, {File? backgroundFile, String? prompt}) async {
     return processImage(
       imageFile, 
@@ -337,19 +296,6 @@ class ClipDropService {
       } else {
         throw Exception('API error: ${response.statusCode}');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw Exception('API key không hợp lệ - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      } else if (e.response?.statusCode == 403) {
-        throw Exception('Không có quyền truy cập API - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      } else if (e.response?.statusCode == 429) {
-        throw Exception('Đã vượt quá giới hạn API - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      } else {
-        throw Exception('Lỗi kết nối: ${e.message} - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-      }
-    } catch (e) {
-      throw Exception('Lỗi không xác định: $e - ${_usingBackupApi ? "API dự phòng" : "API chính"}');
-    }
     });
   }
 
