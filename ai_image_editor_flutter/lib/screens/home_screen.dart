@@ -7,6 +7,7 @@ import '../widgets/enhanced_editor_widget.dart';
 import '../widgets/processing_widget.dart';
 import '../widgets/result_widget.dart';
 import '../widgets/bottom_navigation_widget.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -186,15 +187,28 @@ class HomeScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                OutlinedButton(
-                  onPressed: provider.clearError,
-                  child: const Text('Thử lại'),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: provider.reset,
-                  child: const Text('Bắt đầu lại'),
-                ),
+                if (provider.errorMessage.contains('API key'))
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.settings),
+                    label: const Text('Cài đặt API'),
+                  )
+                else ...[
+                  OutlinedButton(
+                    onPressed: provider.clearError,
+                    child: const Text('Thử lại'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: provider.reset,
+                    child: const Text('Bắt đầu lại'),
+                  ),
+                ],
               ],
             ),
           ],
@@ -226,8 +240,14 @@ class HomeScreen extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.settings),
-              title: const Text('Cài đặt'),
-              onTap: () => Navigator.pop(context),
+              title: const Text('Cài đặt API'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                );
+              },
             ),
           ],
         ),

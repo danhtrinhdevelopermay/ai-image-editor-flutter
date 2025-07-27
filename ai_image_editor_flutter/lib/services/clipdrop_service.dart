@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum ProcessingOperation {
   removeBackground,
@@ -16,9 +17,6 @@ enum ProcessingOperation {
 }
 
 class ClipDropService {
-  static const String _primaryApiKey = 'YOUR_PRIMARY_CLIPDROP_API_KEY';
-  static const String _backupApiKey = 'YOUR_BACKUP_CLIPDROP_API_KEY';
-  
   // API endpoints
   static const String _removeBackgroundUrl = 'https://clipdrop-api.co/remove-background/v1';
   static const String _removeTextUrl = 'https://clipdrop-api.co/remove-text/v1';
@@ -31,26 +29,49 @@ class ClipDropService {
   static const String _replaceBackgroundUrl = 'https://clipdrop-api.co/replace-background/v1';
 
   late Dio _dio;
-  String _currentApiKey = _primaryApiKey;
+  String _currentApiKey = '';
+  String _primaryApiKey = '';
+  String _backupApiKey = '';
   bool _usingBackupApi = false;
 
   ClipDropService() {
     _dio = Dio();
+    _initializeApiKeys();
+  }
+
+  Future<void> _initializeApiKeys() async {
+    await _loadApiKeys();
     _dio.options.headers['x-api-key'] = _currentApiKey;
+  }
+
+  Future<void> _loadApiKeys() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _primaryApiKey = prefs.getString('clipdrop_primary_api_key') ?? '';
+      _backupApiKey = prefs.getString('clipdrop_backup_api_key') ?? '';
+      _currentApiKey = _primaryApiKey;
+      _usingBackupApi = false;
+    } catch (e) {
+      print('Lỗi khi tải API keys: $e');
+    }
   }
 
   void _switchToBackupApi() {
-    _currentApiKey = _backupApiKey;
-    _usingBackupApi = true;
-    _dio.options.headers['x-api-key'] = _currentApiKey;
-    print('Đã chuyển sang API dự phòng');
+    if (_backupApiKey.isNotEmpty) {
+      _currentApiKey = _backupApiKey;
+      _usingBackupApi = true;
+      _dio.options.headers['x-api-key'] = _currentApiKey;
+      print('Đã chuyển sang API dự phòng');
+    }
   }
 
   void _resetToPrimaryApi() {
-    _currentApiKey = _primaryApiKey;
-    _usingBackupApi = false;
-    _dio.options.headers['x-api-key'] = _currentApiKey;
-    print('Đã reset về API chính');
+    if (_primaryApiKey.isNotEmpty) {
+      _currentApiKey = _primaryApiKey;
+      _usingBackupApi = false;
+      _dio.options.headers['x-api-key'] = _currentApiKey;
+      print('Đã reset về API chính');
+    }
   }
 
   Future<T> _executeWithFailover<T>(Future<T> Function() operation) async {
@@ -96,9 +117,22 @@ class ClipDropService {
     int? targetWidth,
     int? targetHeight,
   }) async {
+    // Reload API keys if not initialized
+    if (_currentApiKey.isEmpty) {
+      await _loadApiKeys();
+      _dio.options.headers['x-api-key'] = _currentApiKey;
+    }
+    
     return await _executeWithFailover(() async {
       if (_currentApiKey.isEmpty) {
-        throw Exception('Vui lòng cấu hình API key Clipdrop');
+        throw Exception(
+          'Vui lòng cấu hình API key Clipdrop trong màn hình Cài đặt.\n\n'
+          'Để lấy API key:\n'
+          '1. Truy cập https://clipdrop.co/apis\n'
+          '2. Đăng ký hoặc đăng nhập\n'
+          '3. Tạo API key mới\n'
+          '4. Nhập vào màn hình Cài đặt của app'
+        );
       }
 
       String apiUrl;
@@ -274,9 +308,22 @@ class ClipDropService {
 
   // Special method for text-to-image that doesn't require an input image
   Future<Uint8List> generateImageFromText(String prompt) async {
+    // Reload API keys if not initialized
+    if (_currentApiKey.isEmpty) {
+      await _loadApiKeys();
+      _dio.options.headers['x-api-key'] = _currentApiKey;
+    }
+    
     return await _executeWithFailover(() async {
       if (_currentApiKey.isEmpty) {
-        throw Exception('Vui lòng cấu hình API key Clipdrop');
+        throw Exception(
+          'Vui lòng cấu hình API key Clipdrop trong màn hình Cài đặt.\n\n'
+          'Để lấy API key:\n'
+          '1. Truy cập https://clipdrop.co/apis\n'
+          '2. Đăng ký hoặc đăng nhập\n'
+          '3. Tạo API key mới\n'
+          '4. Nhập vào màn hình Cài đặt của app'
+        );
       }
 
       final formData = FormData.fromMap({
