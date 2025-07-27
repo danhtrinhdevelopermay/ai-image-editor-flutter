@@ -8,6 +8,8 @@ on:
 permissions:
   contents: write
   actions: read
+  pull-requests: write
+  issues: write
 
 jobs:
   build:
@@ -45,26 +47,36 @@ jobs:
         flutter clean
         flutter pub get
         
-    - name: Make gradlew executable
+    - name: Check Gradle setup
       run: |
         cd ai_image_editor_flutter/android
-        chmod +x gradlew || echo "gradlew not found, continuing..."
+        ls -la
+        ls -la gradle/wrapper/
+        chmod +x gradlew
+        echo "Gradle setup complete"
     
     - name: Build Release APK
       run: |
         cd ai_image_editor_flutter
-        flutter build apk --release --verbose --no-tree-shake-icons --no-shrink
+        flutter clean
+        flutter pub get
+        flutter build apk --release --verbose --no-tree-shake-icons
     
     - name: Build Split APKs (optional)
       run: |
         cd ai_image_editor_flutter
-        flutter build apk --release --split-per-abi --verbose --no-tree-shake-icons --no-shrink || echo "Split APK build failed, continuing with universal APK"
+        flutter build apk --release --split-per-abi --verbose --no-tree-shake-icons || echo "Split APK build failed, continuing with universal APK"
     
+    - name: Check APK exists
+      run: |
+        ls -la ai_image_editor_flutter/build/app/outputs/flutter-apk/
+        
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
       with:
         name: release-apk
         path: ai_image_editor_flutter/build/app/outputs/flutter-apk/app-release.apk
+        if-no-files-found: warn
     
     - name: Upload Split APKs
       uses: actions/upload-artifact@v4
@@ -78,33 +90,31 @@ jobs:
     
     - name: Create Release
       if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: v1.0.${{ github.run_number }}
         name: Photo Magic v1.0.${{ github.run_number }}
         body: |
-          🎨 **Photo Magic - AI Image Editor APK**
+          Photo Magic - AI Image Editor APK
           
-          **✨ Tính năng mới:**
-          - 🔍 Background removal (Xóa background)
-          - 🧹 Object cleanup (Xóa đối tượng)
-          - 📝 Text removal (Xóa text)
-          - 📐 Image uncrop (Mở rộng ảnh)
-          - 🔍 Image upscaling (Nâng cấp chất lượng)
-          - 🎨 Reimagine (Tái tưởng tượng)
-          - 📦 Product photography (Ảnh sản phẩm)
-          - 🌅 Background replacement (Thay background)
-          - 🎭 Text-to-image (Tạo ảnh từ text)
+          Tinh nang moi:
+          - Background removal (Xoa background)
+          - Object cleanup (Xoa doi tuong)
+          - Text removal (Xoa text)
+          - Image uncrop (Mo rong anh)
+          - Image upscaling (Nang cap chat luong)
+          - Reimagine (Tai tuong tuong)
+          - Product photography (Anh san pham)
+          - Background replacement (Thay background)
+          - Text-to-image (Tao anh tu text)
           
-          **🚀 Cải tiến:**
-          - API failover tự động
-          - Giao diện tiếng Việt
+          Cai tien:
+          - API failover tu dong
+          - Giao dien tieng Viet
           - Android 5.0+ support
           - Real-time processing
-        files: |
-          ai_image_editor_flutter/build/app/outputs/flutter-apk/app-release.apk
+        files: ai_image_editor_flutter/build/app/outputs/flutter-apk/app-release.apk
         draft: false
         prerelease: false
-        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
