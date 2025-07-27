@@ -62,11 +62,10 @@ cd ai_image_editor_flutter
 flutter pub get
 ```
 
-3. **⚠️ Cấu hình API Key (Bắt buộc):**
-   - Truy cập https://clipdrop.co/apis và tạo tài khoản
-   - Tạo API key mới trong dashboard
-   - Mở app và vào "Cài đặt API" từ menu
-   - Nhập API key và lưu cấu hình
+3. **✅ API Key đã được cấu hình sẵn:**
+   - App đã được cấu hình với API keys hợp lệ
+   - Có thể sử dụng ngay mà không cần thêm cài đặt
+   - Nếu cần thay đổi API key: Vào "Cài đặt API" từ menu
    - Xem hướng dẫn chi tiết: [API_CONFIGURATION_GUIDE.md](API_CONFIGURATION_GUIDE.md)
 
 ## Build APK

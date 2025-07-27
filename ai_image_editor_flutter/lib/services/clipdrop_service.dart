@@ -47,8 +47,8 @@ class ClipDropService {
   Future<void> _loadApiKeys() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _primaryApiKey = prefs.getString('clipdrop_primary_api_key') ?? '';
-      _backupApiKey = prefs.getString('clipdrop_backup_api_key') ?? '';
+      _primaryApiKey = prefs.getString('clipdrop_primary_api_key') ?? '2f62a50ae0c0b965c1f54763e90bb44c101d8d1b84b5a670f4a6bd336954ec2c77f3c3b28ad0c1c9271fcfdfa2abc664';
+      _backupApiKey = prefs.getString('clipdrop_backup_api_key') ?? '7ce6a169f98dc2fb224fc5ad1663c53716b1ee3332fc7a3903dc8a5092feb096731cf4a19f9989cb2901351e1c086ff2';
       _currentApiKey = _primaryApiKey;
       _usingBackupApi = false;
     } catch (e) {
