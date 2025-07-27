@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   workflow_dispatch:  # Cho phép chạy thủ công
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   build:
     name: Build APK
@@ -40,7 +44,6 @@ jobs:
         cd ai_image_editor_flutter
         flutter clean
         flutter pub get
-        flutter pub deps
         
     - name: Make gradlew executable
       run: |
@@ -50,12 +53,12 @@ jobs:
     - name: Build Release APK
       run: |
         cd ai_image_editor_flutter
-        flutter build apk --release --verbose --no-tree-shake-icons
+        flutter build apk --release --verbose --no-tree-shake-icons --no-shrink
     
     - name: Build Split APKs (optional)
       run: |
         cd ai_image_editor_flutter
-        flutter build apk --release --split-per-abi --verbose || echo "Split APK build failed, continuing with universal APK"
+        flutter build apk --release --split-per-abi --verbose --no-tree-shake-icons --no-shrink || echo "Split APK build failed, continuing with universal APK"
     
     - name: Upload Release APK
       uses: actions/upload-artifact@v4
@@ -75,20 +78,33 @@ jobs:
     
     - name: Create Release
       if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
-        tag_name: v${{ github.run_number }}
-        name: Release v${{ github.run_number }}
+        tag_name: v1.0.${{ github.run_number }}
+        name: Photo Magic v1.0.${{ github.run_number }}
         body: |
-          Photo Magic v2.0.0 - AI Image Editor APK
-          - 7 tính năng AI mới: Background removal, Cleanup, Uncrop, Upscaling, Reimagine, Product Photography, Text-to-Image
-          - Hệ thống API failover tự động với backup API
-          - Giao diện tiếng Việt hoàn toàn
-          - Android 5.0+ tương thích
-          - Automatic API failover for uninterrupted service
+          🎨 **Photo Magic - AI Image Editor APK**
+          
+          **✨ Tính năng mới:**
+          - 🔍 Background removal (Xóa background)
+          - 🧹 Object cleanup (Xóa đối tượng)
+          - 📝 Text removal (Xóa text)
+          - 📐 Image uncrop (Mở rộng ảnh)
+          - 🔍 Image upscaling (Nâng cấp chất lượng)
+          - 🎨 Reimagine (Tái tưởng tượng)
+          - 📦 Product photography (Ảnh sản phẩm)
+          - 🌅 Background replacement (Thay background)
+          - 🎭 Text-to-image (Tạo ảnh từ text)
+          
+          **🚀 Cải tiến:**
+          - API failover tự động
+          - Giao diện tiếng Việt
+          - Android 5.0+ support
+          - Real-time processing
         files: |
-          ai_image_editor_flutter/build/app/outputs/flutter-apk/*.apk
+          ai_image_editor_flutter/build/app/outputs/flutter-apk/app-release.apk
         draft: false
         prerelease: false
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
