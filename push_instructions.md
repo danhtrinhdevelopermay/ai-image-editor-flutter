@@ -41,7 +41,7 @@ git push origin main
 ### 🔧 Nếu vẫn lỗi authentication:
 
 ```bash
-git remote set-url origin https://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@github.com/danhtrinhdevelopermay/ai-image-editor-flutter.git
+git remote set-url origin https://YOUR_TOKEN@github.com/danhtrinhdevelopermay/ai-image-editor-flutter.git
 git push origin main
 ```
 
